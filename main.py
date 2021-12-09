@@ -33,10 +33,9 @@ class ScnorrSignatureContainer:
         try:
             success = self._process_rows()
         except BaseException:
-            success = False
+            return "Unexpected error occurred try again or contact developer"
         if success:
-            return "Failas nuskaitytas sėkmingai"
-        return "Įvyko nenumatyta klaida"
+            return "File scanned successfully"
 
     def _process_rows(self):
         if not self.file:
@@ -74,7 +73,10 @@ class ScnorrSignatureContainer:
                 row[self.headers["r"]] != "" and
                 row[self.headers["s"]] != "" and
                 row[self.headers["message"]] != "" and
-                row[self.headers["public_key"]] != ""
+                row[self.headers["public_key"]] != "" and
+                row[self.headers["r"]].isdigit() and
+                row[self.headers["s"]].isdigit() and
+                row[self.headers["public_key"]].isdigit()
         )
 
     def _is_not_empty_row(self, row):
@@ -125,23 +127,23 @@ ttk.Label(frame, text="g:").grid(column=0, row=1)
 g = ttk.Entry(frame)
 # g.insert(0, "2")
 g.grid(column=1, row=1)
-ttk.Label(frame, text="Viešo rakto antraštė:").grid(column=0, row=2)
+ttk.Label(frame, text="Public key header:").grid(column=0, row=2)
 puk = ttk.Entry(frame)
 puk.grid(column=1, row=2)
 # puk.insert(0, "PuK")
-ttk.Label(frame, text="Žinutės antraštė:").grid(column=0, row=3)
+ttk.Label(frame, text="Signed message header:").grid(column=0, row=3)
 message = ttk.Entry(frame)
 message.grid(column=1, row=3)
 # message.insert(0, "Enc. Vote Ci")
-ttk.Label(frame, text="r antraštė:").grid(column=0, row=4)
+ttk.Label(frame, text="Signature r-component header:").grid(column=0, row=4)
 r = ttk.Entry(frame)
 r.grid(column=1, row=4)
 # r.insert(0, "Signature comp.   R")
-ttk.Label(frame, text="s antraštė:").grid(column=0, row=5)
+ttk.Label(frame, text="Signature s-component header:").grid(column=0, row=5)
 s = ttk.Entry(frame)
 s.grid(column=1, row=5)
 # s.insert(0, "Signature comp.   S")
-ttk.Label(frame, text="verifikacijos atsakymo antraštė:").grid(column=0, row=6)
+ttk.Label(frame, text="Verification result header:").grid(column=0, row=6)
 verification = ttk.Entry(frame)
 verification.grid(column=1, row=6)
 # verification.insert(0, "V")
@@ -159,10 +161,10 @@ def check_inputs():
 
 def validation():
     if not check_inputs():
-        text.insert('end', "Ne visi laukai užpildyti" + '\n')
+        text.insert('end', "Not all fields filled" + '\n')
         return
     if not container.file:
-        text.insert('end', "Nepasirinktitas failas" + '\n')
+        text.insert('end', "Missing file" + '\n')
 
     headers = {
         "public_key": puk.get(),
@@ -172,8 +174,12 @@ def validation():
         "verification": verification.get(),
     }
 
-    container.p = int(p.get())
-    container.g = int(g.get())
+    try:
+        container.p = int(p.get())
+        container.g = int(g.get())
+    except ValueError:
+        text.insert('end', "p and g values must be integers" + '\n')
+
     container.headers = headers
 
     result_message = container.get_results()
@@ -195,10 +201,10 @@ def open_text_file():
 # open file button
 open_button = ttk.Button(
     frame,
-    text='Pasirinkti failą',
+    text='Choose file',
     command=open_text_file
 ).grid(column=0, row=9, sticky='w', padx=10, pady=10)
 
-ttk.Button(frame, text="Tikrinti", command=validation).grid(column=1, row=9)
+ttk.Button(frame, text="Verify", command=validation).grid(column=1, row=9)
 
 root.mainloop()
